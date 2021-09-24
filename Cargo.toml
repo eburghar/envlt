@@ -1,0 +1,18 @@
+[package]
+name = "envault"
+description = """vault client using jwt authentication that export secrets to environment variables"""
+authors = ["Éric BURGHARD <eric@itsufficient.me>"]
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+anyhow = "1.0.41"
+argh = "0.1.4"
+env_logger = "0.8.4"
+libc = "0.2.102"
+log = "0.4.14"
+vaultk8s = "5"
+
+[patch.crates-io]
+# vaultk8s = { git = "https://github.com/eburghar/vaultk8s.git", branch = "master" }
+vaultk8s = { path = "../vaultk8s" }
