@@ -12,11 +12,19 @@ pub struct Args {
 	)]
 	pub url: String,
 
-	/// the env variable containing the JWT token
+	/// the env variable containing the JWT token (CI_JOB_JWT)
 	#[argh(option, short = 'j', default = "\"CI_JOB_JWT\".to_owned()")]
 	pub jwt: String,
 
-	/// an expression VAR=PATH for defining a variable from a vault path
+	/// the login path (/auth/jwt/login)
+	#[argh(
+		option,
+		short = 'l',
+		default = "\"/auth/jwt/login\".to_owned()"
+	)]
+	pub login_path: String,
+
+	/// an expression NAME=PATH for defining a variable named NAME from a vault path expression
 	#[argh(option, short = 'v')]
 	pub vars: Vec<String>,
 

@@ -11,8 +11,8 @@ argh = "0.1.4"
 env_logger = "0.8.4"
 libc = "0.2.102"
 log = "0.4.14"
-vaultk8s = "5"
+vaultk8s = "0.5"
 
 [patch.crates-io]
-# vaultk8s = { git = "https://github.com/eburghar/vaultk8s.git", branch = "master" }
-vaultk8s = { path = "../vaultk8s" }
+vaultk8s = { git = "https://github.com/eburghar/vaultk8s.git", branch = "master" }
+# vaultk8s = { path = "../vaultk8s" }
