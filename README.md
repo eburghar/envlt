@@ -21,12 +21,11 @@ indexes (starting at 0) for arrays.
 
 ## Usage
 
-```
-envlt 0.1.0
+```envlt 0.1.0
 
 Usage: envlt <cmd> [<args...>] [-u <url>] [-l <login-path>] [-c <cacert>] [-T <token>] [-t <token-path>] [-V <vars...>] [-v] [-i] [-I]
 
-Get vault secrets from path, modify environment, then executure args and command
+Get vault secrets from path expressions, define environment variables, then execute into args and command
 
 Options:
   -u, --url         the vault url ($VAULT_URL or https://localhost:8200/v1)
@@ -37,10 +36,10 @@ Options:
                     given string if it fails (take precedence over -t)
   -t, --token-path  path of the JWT token
                     (/var/run/secrets/kubernetes.io/serviceaccount/token)
-  -V, --vars        an expression NAME=PATH for defining a variable named NAME
-                    from a vault path expression
+  -V, --vars        an expression PREFIX=PATH for defining one or several
+                    variables prefixed with PREFIX from a vault path expression
   -v, --verbose     verbose mode
-  -i, --import      import all environment variables before executing cmd
+  -i, --import      import all environment variables before executing into cmd
   -I, --import-vault
                     import environment variables whose values matches a
                     vault_path a whose expansion is successful
@@ -49,7 +48,7 @@ Options:
 
 # Vault path expression
 
-Vault expression has the following structure
+a Vault path expression has the following structure :
 
 ```
 role[,GET|PUT|POST|LIST][,key=val]*:path:json_pointer
@@ -58,6 +57,7 @@ role[,GET|PUT|POST|LIST][,key=val]*:path:json_pointer
 - `role` is the role name used for vault authentication,
 - the optional http method defaults to `GET`
 - the optional keywords arguments are sent as json dictionary in the body of the request
+- a path corresponding to the vault api point (without `/v1/`)
 - the [json pointer](https://datatracker.ietf.org/doc/html/rfc6901) is for a path into the secret json structure to
   construct the list of variable names from
 

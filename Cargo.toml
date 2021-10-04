@@ -1,6 +1,6 @@
 [package]
 name = "envlt"
-description = """vault client using jwt authentication that define environment variables with vault secret before
+description = """vault client using jwt authentication that define environment variables from vault secrets before
 executing to something else"""
 authors = ["Éric BURGHARD <eric@itsufficient.me>"]
 version = "0.1.0"

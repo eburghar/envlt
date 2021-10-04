@@ -1,7 +1,7 @@
 use argh::{FromArgs, TopLevelCommand};
 use std::{convert::From, path::Path};
 
-/// Get vault secrets from path, modify environment, then executure args and command
+/// Get vault secrets from path expressions, define environment variables, then execute into args and command
 #[derive(FromArgs)]
 pub struct Args {
 	/// the vault url ($VAULT_URL or https://localhost:8200/v1)
@@ -36,7 +36,7 @@ pub struct Args {
 	)]
 	pub token_path: String,
 
-	/// an expression NAME=PATH for defining a variable named NAME from a vault path expression
+	/// an expression PREFIX=PATH for defining one or several variables prefixed with PREFIX from a vault path expression
 	#[argh(option, short = 'V')]
 	pub vars: Vec<String>,
 
@@ -44,7 +44,7 @@ pub struct Args {
 	#[argh(switch, short = 'v')]
 	pub verbose: bool,
 
-	/// import all environment variables before executing cmd
+	/// import all environment variables before executing into cmd
 	#[argh(switch, short = 'i')]
 	pub import: bool,
 
@@ -61,15 +61,15 @@ pub struct Args {
 	pub args: Vec<String>,
 }
 
-/// Uniformize -i and -I combinations into an enum
+/// Express all -i and -I combinations
 pub enum ImportMode {
-	// no -i, or -I: only defined variables (-V) imported
+	// only defined variables (with -V) are imported (no -i, nor -I)
 	None,
-	// -i and no -I: all environment variables are imported as is
+	// all environment variables are imported as is (-i but no -I)
 	All,
-	// -I and no -i: only environment variable matching a vault_path and successfuly expanded are imported
+	// only environment variables matching a vault_path and successfuly expanded are imported (-I but no -i)
 	OnlyEx,
-	// all environment variables are imported and expanded using vault_path whenever possible
+	// all environment variables are imported and expanded whenever possible (-i and -I)
 	AllEx,
 }
 
