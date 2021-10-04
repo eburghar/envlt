@@ -17,5 +17,5 @@ thiserror = "1.0.29"
 vault-jwt = "0.5"
 
 [patch.crates-io]
-# vault-jwt = { git = "https://github.com/eburghar/vault-jwt.git", branch = "master" }
-vault-jwt = { path = "../vault-jwt" }
+vault-jwt = { git = "https://github.com/eburghar/vault-jwt.git", branch = "master" }
+# vault-jwt = { path = "../vault-jwt" }
