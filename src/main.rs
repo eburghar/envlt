@@ -1,63 +1,63 @@
-// https://users.rust-lang.org/t/rookie-going-from-std-process-to-libc-exec/10180/2
 mod args;
+mod error;
 mod secret;
 
-use anyhow::{anyhow, Context, Result};
-use std::{convert::TryFrom, env, ffi::CString, os::raw::c_char};
-use vaultk8s::client::VaultClient;
+use anyhow::Result;
+use std::{env, ffi::CString, fs::File, io::Read, os::raw::c_char};
+use vault_jwt::client::VaultClient;
 
-use crate::{args::Args, secret::SecretPath};
-
-fn parse_var(exp: &str) -> Result<(&str, &str)> {
-	let i = exp
-		.find("=")
-		.and_then(|i| if i >= exp.len() { None } else { Some(i) })
-		.ok_or_else(|| anyhow!("variable expression should be name=value: \"{}\"", exp))?;
-	Ok((&exp[..i], &exp[i + 1..]))
-}
+use crate::{
+	args::{Args, ImportMode},
+	error::Error,
+	secret::Vars,
+};
 
 fn main() -> Result<()> {
 	// parse command line arguments
 	let args: Args = args::from_env();
 
-	let jwt = env::var(&args.jwt).with_context(|| {
-		format!(
-			"failed to get jwt token from environment variable {}",
-			&args.jwt
-		)
-	})?;
-	let mut client = VaultClient::new(&args.url, &args.login_path, &jwt, None)?;
+	// initialize env_logger in info mode for rconfd by default
+	env_logger::init_from_env(env_logger::Env::new().default_filter_or("envlt=info"));
 
-	// convert cmd to pointer
-	let cmd = CString::new(args.cmd).unwrap();
+	// if token given as argument, get the value from an envar with given name, or just use the string if it fails
+	let jwt = if let Some(jwt) = &args.token {
+		env::var(jwt).ok().or_else(|| Some(jwt.to_owned())).unwrap()
+	// otherwise read from a file
+	} else {
+		let mut jwt = String::new();
+		File::open(&args.token_path)?.read_to_string(&mut jwt)?;
+		jwt
+	};
+	// trim jwt on both ends
+	let jwt = jwt.trim();
+	let import_mode: ImportMode = (&args).into();
 
-	// convert cmd_args to array of pointers
-	let cmd_args: Vec<CString> = args
-		.args
-		.into_iter()
-		.map(|s| CString::new(s).unwrap())
-		.collect();
-	let mut cmd_args_raw: Vec<*const c_char> = cmd_args.iter().map(|s| s.as_ptr()).collect();
-	cmd_args_raw.push(std::ptr::null());
+	// initialize a vault client to fetch secret
+	let mut client = VaultClient::new(&args.url, &args.login_path, jwt, Some(&args.cacert))?;
 
-	// convert env to array of pointers
-	let mut env: Vec<CString> = Vec::with_capacity(args.vars.len());
-	for var in args.vars {
-		let (name, path) = parse_var(&var)?;
-		let secret_path = SecretPath::try_from(path)?;
-		let role = secret_path.args[0];
-		let method = secret_path.args.get(1).unwrap_or(&"get").to_ascii_uppercase();
-		if !client.is_logged(role) {
-			client
-				.login(role)?;
-		}
-		let secret = client.get_secret(role, &method, secret_path.path, secret_path.kwargs.as_ref())?;
-		env.push(CString::new(format!("{}={}", name, &secret.value)).unwrap());
+	// convert cmd to CString
+	let prog = CString::new(args.cmd).unwrap();
+
+	// convert args into CString (move args out of args)
+	let mut cmd_args = Vec::<CString>::with_capacity(args.args.len() + 1);
+	cmd_args.push(prog.clone());
+	for arg in args.args.into_iter() {
+		cmd_args.push(CString::new(arg).unwrap())
 	}
-	let mut env_raw: Vec<*const c_char> = env.iter().map(|s| s.as_ptr()).collect();
-	env_raw.push(std::ptr::null());
+	// construct a vector of pointers from borrowed iterator (borrowed CString)
+	let mut argv: Vec<*const c_char> = cmd_args.iter().map(|s| s.as_ptr()).collect();
+	argv.push(std::ptr::null());
 
-	// execute into given command and args with given env vars in context
-	unsafe { libc::execve(cmd.as_ptr(), cmd_args_raw.as_ptr(), env_raw.as_ptr()) };
-	Ok(())
+	// construct a vec of variables definition from variable expressions (PREFIX=VAULT_PATH)
+	let mut env = Vars::default();
+	env.push_vars(args.vars, &mut client, import_mode)?;
+
+	// construct a vector of pointers from borrowed iterator (borrowed CString)
+	let mut envp: Vec<*const c_char> = env.iter().map(|s| s.as_ptr()).collect();
+	envp.push(std::ptr::null());
+
+	// SAFETY: All values pointed by vectors ptr (argv and envp) still exists at this point, so it's safe
+	// call execve
+	unsafe { libc::execve(prog.as_ptr(), argv.as_ptr(), envp.as_ptr()) };
+	Err(Error::ExecError(prog, std::io::Error::last_os_error()))?
 }
