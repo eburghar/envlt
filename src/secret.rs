@@ -1,25 +1,56 @@
-use serde_json::Value;
-use std::{
-	collections::HashMap,
-	convert::TryFrom,
-	ffi::CString,
-	fmt,
-	ops::{Deref, DerefMut},
-};
-use vault_jwt::{client::VaultClient, secret::Secret};
+use std::{convert::TryFrom, fmt};
 
-use crate::{
-	args::ImportMode,
-	error::{Error, Result},
-};
+use crate::error::Error;
 
+/// The different types of supported backend
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+pub enum Backend {
+	/// Vault
+	Vault,
+	/// Const
+	Const,
+}
+
+/// lookup list for backend
+const BACKENDS: &'static [(&'static str, Backend)] =
+	&[("vault", Backend::Vault), ("const", Backend::Const)];
+
+impl<'a> fmt::Display for Backend {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		for (s, b) in BACKENDS.iter() {
+			if self == b {
+				return write!(f, "{}", s);
+			}
+		}
+		Ok(())
+	}
+}
+
+/// Convert a backend text representation into its enum
+impl<'a> TryFrom<&'a str> for Backend {
+	type Error = Error;
+
+	fn try_from(backend_str: &'a str) -> Result<Self, Self::Error> {
+		BACKENDS
+			.iter()
+			.find_map(|(prefix, backend)| {
+				if backend_str.starts_with(*prefix) {
+					Some(*backend)
+				} else {
+					None
+				}
+			})
+			.ok_or(Error::UnknowBackend(backend_str.to_owned()))
+	}
+}
 /// Deserialize a SecretPath
 #[derive(PartialEq, Debug)]
 pub struct SecretPath<'a> {
+    pub backend: Backend,
 	pub args: Vec<&'a str>,
 	pub kwargs: Option<Vec<(&'a str, &'a str)>>,
 	pub path: &'a str,
-	pub pointer: &'a str,
+	pub anchor: &'a str,
 }
 
 /// Serialize a SecretPath
@@ -32,282 +63,5 @@ impl<'a> fmt::Display for SecretPath<'a> {
 			}
 		}
 		write!(f, ":{}", self.path)
-	}
-}
-
-/// Simple SecretPath parser: arg_1(,arg_n)*(,key_n=val_n):path:jsonpointer
-impl<'a> TryFrom<&'a str> for SecretPath<'a> {
-	type Error = Error;
-
-	fn try_from(path: &'a str) -> Result<Self> {
-		// split all path components
-		let mut it = path.split(":");
-		let args_ = it.next().ok_or(Error::NoArgs(path.to_owned()))?;
-		let path = it.next().ok_or(Error::NoPath(args_.to_owned()))?;
-		let pointer = it.next().ok_or(Error::NoSubpath(path.to_owned()))?;
-		if it.next().is_some() {
-			Err(Error::ExtraData(path.to_owned()))?;
-		}
-		// split simple and keyword arguments in separate lists
-		let mut args = Vec::with_capacity(args_.len());
-		let mut kwargs = Vec::with_capacity(args_.len());
-		for arg in args_.split(",") {
-			if let Some(pos) = arg.find('=') {
-				kwargs.push((&arg[..pos], &arg[pos + 1..]));
-			} else {
-				args.push(arg);
-			}
-		}
-
-		Ok(Self {
-			args,
-			kwargs: if kwargs.is_empty() {
-				None
-			} else {
-				Some(kwargs)
-			},
-			path,
-			pointer,
-		})
-	}
-}
-
-#[derive(Debug)]
-pub struct Vars {
-	/// Array of CString NAME=VALUE
-	vars: Vec<CString>,
-	/// Cache of fetched secrets by path
-	cache: HashMap<String, Secret>,
-}
-
-/// Split a variable definition in NAME and VALUE
-fn parse_var(exp: &str) -> Result<(&str, &str)> {
-	let i = exp
-		.find("=")
-		.and_then(|i| if i >= exp.len() { None } else { Some(i) })
-		.ok_or_else(|| Error::ParseVar(exp.to_owned()))?;
-	Ok((&exp[..i], &exp[i + 1..]))
-}
-
-impl Vars {
-	pub fn push_secret(&mut self, var: &str, client: &mut VaultClient) -> Result<()> {
-		let (name, path) = parse_var(&var)?;
-		let secret_path = SecretPath::try_from(path)?;
-		let role = secret_path
-			.args
-			.get(0)
-			.ok_or_else(|| Error::MissingRole(path.to_owned()))?;
-		let method = secret_path
-			.args
-			.get(1)
-			.unwrap_or(&"get")
-			.to_ascii_uppercase();
-
-		// get owned secret
-		let secret = if let Some(secret) = self.cache.remove(secret_path.path) {
-			log::info!("get secret \"{}\" from cache", secret_path.path);
-			secret
-		} else {
-			log::info!("get secret \"{}\" from vault", secret_path.path);
-			if !client.is_logged(role) {
-				client.login(role)?;
-			}
-			client.get_secret(role, &method, secret_path.path, secret_path.kwargs.as_ref())?
-		};
-		let value = if secret_path.pointer != "" {
-			secret
-				.value
-				.pointer(&secret_path.pointer)
-				.ok_or_else(|| Error::Pointer(secret_path.pointer.to_owned()))?
-		} else {
-			&secret.value
-		};
-		self.push_value(value, name).unwrap();
-
-		// insert the secret in cache
-		self.cache.insert(secret_path.path.to_owned(), secret);
-		Ok(())
-	}
-
-	/// set a list of variable definitions from a list of PREFIX=VAULT_PATH expressions
-	/// by fetching the secrets from vault or cache and defining variables from the structure of the secret
-	pub fn push_vars(
-		&mut self,
-		vars: Vec<String>,
-		client: &mut VaultClient,
-		import_mode: ImportMode,
-	) -> Result<()> {
-		match import_mode {
-			ImportMode::None => {},
-			ImportMode::All => {
-				for (name, val) in std::env::vars() {
-					self.push(CString::new(name + "=" + &val)?);
-				}
-			},
-			ImportMode::OnlyEx => {
-				for (name, val) in std::env::vars() {
-					let var = name + "=" + &val;
-					// if variable value match the vault_path structure
-					if val.split(":").count() == 3 {
-    					// try to push the variables generated by the secret silenting the errors
-						let _ = self.push_secret(&var, client);
-					}
-				}
-			},
-			ImportMode::AllEx => {
-				for (name, val) in std::env::vars() {
-					let var = name + "=" + &val;
-					// if variable value match the vault_path structure
-					if val.split(":").count() == 3 {
-    					// try to fetch the vault secret silenting the errors
-						if self.push_secret(&var, client).is_err() {
-    						// otherwise fallback to value
-							self.push(CString::new(var)?);
-						}
-					// otherwise fallback to value
-					} else {
-						self.push(CString::new(var)?);
-					}
-				}
-			}
-		}
-
-		// for explicit vault variable, push secret and forward errors
-		for var in vars {
-			self.push_secret(&var, client)?;
-		}
-		Ok(())
-	}
-
-	/// Constucts vars from leafs of a parsed json tree
-	pub fn push_value(&mut self, v: &Value, key: &str) -> Result<()> {
-		match v {
-			Value::Null => self.vars.push(CString::new(format!("{}=null", key))?),
-			Value::Bool(v) => self
-				.vars
-				.push(CString::new(format!("{}={}", key, v.to_string()))?),
-			Value::Number(v) => self
-				.vars
-				.push(CString::new(format!("{}={}", key, v.to_string()))?),
-			Value::String(v) => self.vars.push(CString::new(format!("{}={}", key, v))?),
-			Value::Array(a) => {
-				for (i, v) in a.iter().enumerate() {
-					self.push_value(v, &format!("{}_{}", key, i))?;
-				}
-			}
-			Value::Object(m) => {
-				for (k, v) in m.iter() {
-					self.push_value(v, &format!("{}_{}", key, k.to_ascii_uppercase()))?;
-				}
-			}
-		}
-		Ok(())
-	}
-}
-
-impl Default for Vars {
-	fn default() -> Self {
-		Vars {
-			vars: Vec::default(),
-			cache: HashMap::default(),
-		}
-	}
-}
-
-impl Deref for Vars {
-	type Target = Vec<CString>;
-
-	/// Forwards methods to Vec
-	fn deref(&self) -> &Self::Target {
-		&self.vars
-	}
-}
-
-impl DerefMut for Vars {
-	/// Forwards methods to Vec
-	fn deref_mut(&mut self) -> &mut Self::Target {
-		&mut self.vars
-	}
-}
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-	use serde_json::json;
-
-	#[test]
-	fn parse() {
-		let secret =
-			SecretPath::try_from("role,POST,common_name=example.com:pki/issue/example.com:")
-				.unwrap();
-		assert_eq!(
-			secret,
-			SecretPath {
-				args: vec!["role", "POST"],
-				kwargs: Some(vec![("common_name", "example.com")]),
-				path: "pki/issue/example.com",
-				pointer: ""
-			}
-		);
-	}
-
-	#[test]
-	fn push_from() {
-		let value = json!({ "dict": {"key1": "val1", "key2": "val2", "key3": [1, 2, 3, 4]} });
-		let mut vars = Vars::default();
-		let _ = vars.push_value(&value, "VAR").unwrap();
-		let vars_str: Vec<&str> = vars
-			.iter()
-			.map(|s| std::str::from_utf8(s.as_bytes()).unwrap())
-			.collect();
-		assert_eq!(
-			vars_str,
-			vec![
-				"VAR_DICT_KEY1=val1",
-				"VAR_DICT_KEY2=val2",
-				"VAR_DICT_KEY3_0=1",
-				"VAR_DICT_KEY3_1=2",
-				"VAR_DICT_KEY3_2=3",
-				"VAR_DICT_KEY3_3=4"
-			]
-		);
-	}
-
-	#[test]
-	fn push_from_subpath() {
-		let value = json!(
-			{ "data": {"key1": "val1", "key2": "val2", "key3": [1, 2, 3, 4]}, "metadata": {"key4": "val4"} }
-		);
-		let value = value.pointer("/data").unwrap();
-		let mut vars = Vars::default();
-		let _ = vars.push_value(&value, "VAR").unwrap();
-		let vars_str: Vec<&str> = vars
-			.iter()
-			.map(|s| std::str::from_utf8(s.as_bytes()).unwrap())
-			.collect();
-		assert_eq!(
-			vars_str,
-			vec![
-				"VAR_KEY1=val1",
-				"VAR_KEY2=val2",
-				"VAR_KEY3_0=1",
-				"VAR_KEY3_1=2",
-				"VAR_KEY3_2=3",
-				"VAR_KEY3_3=4",
-			],
-		);
-	}
-
-	#[test]
-	fn push_from_subpath_str() {
-		let value = json!({ "data": "val1", "metadata": {"key4": "val4"} });
-		let value = value.pointer("/data").unwrap();
-		let mut vars = Vars::default();
-		let _ = vars.push_value(&value, "VAR").unwrap();
-		let vars_str: Vec<&str> = vars
-			.iter()
-			.map(|s| std::str::from_utf8(s.as_bytes()).unwrap())
-			.collect();
-		assert_eq!(vars_str, vec!["VAR=val1",],);
 	}
 }

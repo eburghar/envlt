@@ -1,6 +1,8 @@
 mod args;
 mod error;
 mod secret;
+mod parser_simple;
+mod vars;
 
 use anyhow::Result;
 use std::{env, ffi::CString, fs::File, io::Read, os::raw::c_char};
@@ -9,7 +11,7 @@ use vault_jwt::client::VaultClient;
 use crate::{
 	args::{Args, ImportMode},
 	error::Error,
-	secret::Vars,
+	vars::Vars,
 };
 
 fn main() -> Result<()> {

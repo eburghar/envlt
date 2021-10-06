@@ -62,6 +62,7 @@ pub struct Args {
 }
 
 /// Express all -i and -I combinations
+#[derive(PartialEq)]
 pub enum ImportMode {
 	// only defined variables (with -V) are imported (no -i, nor -I)
 	None,
@@ -77,38 +78,34 @@ impl From<&Args> for ImportMode {
 	fn from(args: &Args) -> ImportMode {
 		if args.import_vault {
 			if args.import {
-    			ImportMode::AllEx
+				ImportMode::AllEx
 			} else {
-    			ImportMode::OnlyEx
+				ImportMode::OnlyEx
 			}
 		} else if args.import {
-    		if args.import_vault {
-        		ImportMode::AllEx
-    		} else {
-    			ImportMode::All
-    		}
+			if args.import_vault {
+				ImportMode::AllEx
+			} else {
+				ImportMode::All
+			}
 		} else {
 			ImportMode::None
 		}
 	}
 }
 
-fn cmd<'a>(default: &'a String, path: &'a String) -> &'a str {
-	Path::new(path)
-		.file_name()
-		.map(|s| s.to_str())
-		.flatten()
-		.unwrap_or(default.as_str())
-}
-
 /// copy of argh::from_env to insert command name and version
 pub fn from_env<T: TopLevelCommand>() -> T {
 	const NAME: &'static str = env!("CARGO_BIN_NAME");
 	const VERSION: &'static str = env!("CARGO_PKG_VERSION");
-	let strings: Vec<String> = std::env::args().collect();
-	let cmd = cmd(&strings[0], &strings[0]);
-	let strs: Vec<&str> = strings.iter().map(|s| s.as_str()).collect();
-	T::from_args(&[cmd], &strs[1..]).unwrap_or_else(|early_exit| {
+	let args: Vec<String> = std::env::args().collect();
+	// get the file name of path or the full path
+	let cmd = Path::new(&args[0])
+		.file_name()
+		.map_or(None, |s| s.to_str())
+		.unwrap_or(&args[0]);
+	let args_str: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+	T::from_args(&[cmd], &args_str[1..]).unwrap_or_else(|early_exit| {
 		println!("{} {}\n", NAME, VERSION);
 		println!("{}", early_exit.output);
 		std::process::exit(match early_exit.status {
