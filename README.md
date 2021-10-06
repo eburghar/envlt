@@ -15,14 +15,12 @@ straightforward as possible. `envlt` integrate all theses steps in one binary an
 values in the command arguments contrary to a script.
 
 In the spirit of the `env` command, `envlt` replace itself with the command and args given as paramaters after
-adding environment variables to its execution context. For structured value (`vault` backend and `const` backend
-with `js` value), envlt recursively define one variable name for each leaf of the json tree by joining the prefix
-and path components with `_`. Path components are keys for dictionaries and indexes (starting at 0) for arrays.
+adding environment variables to its execution context.
 
 ## Usage
 
 ```
-envlt 0.2.0
+envlt 0.3.0
 
 Usage: envlt <cmd> [<args...>] [-u <url>] [-l <login-path>] [-c <cacert>] [-T <token>] [-t <token-path>] [-V <vars...>] [-v] [-i] [-I]
 
@@ -37,21 +35,31 @@ Options:
                     given string if it fails (take precedence over -t)
   -t, --token-path  path of the JWT token
                     (/var/run/secrets/kubernetes.io/serviceaccount/token)
-  -V, --vars        an expression PREFIX=PATH for defining one or several
-                    variables prefixed with PREFIX from a vault path expression
+  -V, --vars        an expression NAME[=VALUE] for defining one or several
+                    variables. When no VALUE given, an environment variable with
+                    the same name is imported, when VALUE doesn't match a
+                    expression, a new variable is defined with the provided
+                    VALUE, otherwise the expression is expanded in one or
+                    several variables and NAME is used as a prefix.
   -v, --verbose     verbose mode
   -i, --import      import all environment variables before executing into cmd
   -I, --import-vault
                     import environment variables whose values matches a
                     vault_path a whose expansion is successful
   --help            display usage information
+
 ```
 
-# Value expression
+# Variable expression
 
-A value expression depends on the choosen backend, but the general structure is `backend:args:path[#anchor]`
+A variable expression has 3 form:
 
-# Backends
+- `NAME`: an environment variable with the same name is imported before executing the command
+- `NAME=VALUE`: a new environment variable is defined and imported with the provided value
+- `PREFIX=backend:args:path[#anchor]`: one or several variables are imported from the backend. For returned
+  structured value (`vault` backend and `const` backend with `js` value), envlt recursively define one variable
+  name for each leaf of the json tree by joining the prefix and path components with `_`. Path components are keys
+  for dictionaries and indexes (starting at 0) for arrays.# Backends
 
 There are currently 2 supported back-ends.
 
@@ -81,7 +89,9 @@ const:str|js:value
 
 the value is parsed as json if `js` or kept as is if `str`
 
-The main use of the `const:str` expression is to differentiate a standard variable from one to be imported with `-I`.
+The main use of the `const:str:value` expression was to be able to differentiate a standard (not imported)
+variable from one to be imported when using the `-I` flag, although you can achieve the same result by explicitely
+import a regular (whose value is not an expression) variable with `-V NAME`.
 
 # Example
 

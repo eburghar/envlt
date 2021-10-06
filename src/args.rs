@@ -32,7 +32,9 @@ pub struct Args {
 	)]
 	pub token_path: String,
 
-	/// an expression PREFIX=PATH for defining one or several variables prefixed with PREFIX from a vault path expression
+	/// an expression NAME[=VALUE] for defining one or several variables. When no VALUE given, an environment variable
+	/// with the same name is imported, when VALUE doesn't match a expression, a new variable is defined with the provided
+	/// VALUE, otherwise the expression is expanded in one or several variables and NAME is used as a prefix.
 	#[argh(option, short = 'V')]
 	pub vars: Vec<String>,
 

@@ -25,7 +25,9 @@ pub enum Error {
 	#[error(transparent)]
 	ParseError(#[from] serde_json::error::Error),
     #[error("Expected argument {0} on {1}")]
-    ExpectedArg(String, String)
+    ExpectedArg(String, String),
+    #[error(transparent)]
+    UnkownVar(#[from] std::env::VarError)
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

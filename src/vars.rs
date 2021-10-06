@@ -2,6 +2,7 @@ use serde_json::Value;
 use std::{
 	collections::HashMap,
 	convert::TryFrom,
+	env,
 	ffi::CString,
 	ops::{Deref, DerefMut},
 };
@@ -22,12 +23,17 @@ pub struct Vars {
 }
 
 /// Split a variable definition in NAME and VALUE
-fn parse_var(exp: &str) -> Result<(&str, &str)> {
-	let i = exp
-		.find("=")
-		.and_then(|i| if i >= exp.len() { None } else { Some(i) })
-		.ok_or_else(|| Error::ParseVar(exp.to_owned()))?;
-	Ok((&exp[..i], &exp[i + 1..]))
+fn parse_var(exp: &str) -> Result<(&str, Option<&str>)> {
+	let i = exp.find("=");
+	if let Some(i) = i {
+		if i + 1 < exp.len() {
+			Ok((&exp[..i], Some(&exp[i + 1..])))
+		} else {
+			Err(Error::ParseVar(exp.to_owned()))
+		}
+	} else {
+		Ok((exp, None))
+	}
 }
 
 impl Vars {
@@ -133,11 +139,23 @@ impl Vars {
 			}
 		}
 
-		// for explicit vault variable, push secret and forward errors
+		// for explicit variable import push secret or env var value and forward errors
 		for var in vars {
 			let (prefix, val) = parse_var(&var)?;
-			let secret_path = SecretPath::try_from(val.as_ref())?;
-			self.push_secret(prefix, &secret_path, client)?;
+			// if we have a name and a value
+			if let Some(val) = val {
+    			// try to parse the value as a secret path and push
+				if let Ok(secret_path) = SecretPath::try_from(val.as_ref()) {
+					self.push_secret(prefix, &secret_path, client)?;
+        		// otherwise push the var as is
+				} else {
+					self.push(CString::new(var)?);
+				}
+			// if we don't have a value, try to read an env var with the provided name
+			} else {
+				let val = env::var(prefix)?;
+				self.push(CString::new(format!("{}={}", prefix, val))?);
+			}
 		}
 		Ok(())
 	}
