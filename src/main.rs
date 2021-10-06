@@ -1,7 +1,7 @@
 mod args;
 mod error;
-mod secret;
 mod parser_simple;
+mod secret;
 mod vars;
 
 use anyhow::Result;
@@ -46,7 +46,7 @@ fn main() -> Result<()> {
 	for arg in args.args.into_iter() {
 		cmd_args.push(CString::new(arg).unwrap())
 	}
-	// construct a vector of pointers from borrowed iterator (borrowed CString)
+	// construct a vector of pointers from borrowed CString
 	let mut argv: Vec<*const c_char> = cmd_args.iter().map(|s| s.as_ptr()).collect();
 	argv.push(std::ptr::null());
 
@@ -54,11 +54,11 @@ fn main() -> Result<()> {
 	let mut env = Vars::default();
 	env.push_vars(args.vars, &mut client, import_mode)?;
 
-	// construct a vector of pointers from borrowed iterator (borrowed CString)
+	// construct a vector of pointers from borrowed CString
 	let mut envp: Vec<*const c_char> = env.iter().map(|s| s.as_ptr()).collect();
 	envp.push(std::ptr::null());
 
-	// SAFETY: All values pointed by vectors ptr (argv and envp) still exists at this point, so it's safe
+	// SAFETY: All borrowed values pointed by prt inside argv and envp still exists at this point, so it's safe
 	// call execve
 	unsafe { libc::execve(prog.as_ptr(), argv.as_ptr(), envp.as_ptr()) };
 	Err(Error::ExecError(prog, std::io::Error::last_os_error()))?

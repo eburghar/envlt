@@ -1,15 +1,11 @@
 use argh::{FromArgs, TopLevelCommand};
-use std::{convert::From, path::Path};
+use std::{convert::From, env, path::Path};
 
 /// Get vault secrets from path expressions, define environment variables, then execute into args and command
 #[derive(FromArgs)]
 pub struct Args {
 	/// the vault url ($VAULT_URL or https://localhost:8200/v1)
-	#[argh(
-		option,
-		short = 'u',
-		default = "\"https://localhost:8200/v1\".to_owned()"
-	)]
+	#[argh(option, short = 'u', default = "default_url()")]
 	pub url: String,
 
 	/// the login path (/auth/jwt/login)
@@ -59,6 +55,15 @@ pub struct Args {
 	// arguments of command
 	#[argh(positional)]
 	pub args: Vec<String>,
+}
+
+/// returns the default vault url if not defined on command line argument
+/// VAULT_URL or localhost if undefined
+fn default_url() -> String {
+	env::var("VAULT_URL")
+		.ok()
+		.or_else(|| Some("https://localhost:8200/v1".to_owned()))
+		.unwrap()
 }
 
 /// Express all -i and -I combinations

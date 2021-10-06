@@ -74,7 +74,7 @@ impl Vars {
 				} else {
 					&secret.value
 				};
-				// create varialble list from secret
+				// create variables list from secret
 				self.push_value(prefix, value)?;
 				// insert the secret (back) into cache
 				self.cache.insert(secret_path.path.to_owned(), secret);
