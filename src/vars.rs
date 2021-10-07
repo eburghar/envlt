@@ -1,6 +1,6 @@
 use serde_json::Value;
 use std::{
-	collections::HashMap,
+	collections::{hash_map, HashMap},
 	convert::TryFrom,
 	env,
 	ffi::CString,
@@ -193,7 +193,7 @@ impl Vars {
 	/// Return a vector of CString NAME=VALUE, consuming self in the process
 	pub fn get_envp(self) -> Result<Vec<CString>> {
 		let mut res = Vec::with_capacity(self.len());
-		for (k, v) in self.vars.into_iter() {
+		for (k, v) in self.into_iter() {
 			res.push(CString::new(k + "=" + &v)?);
 		}
 		Ok(res)
@@ -215,6 +215,16 @@ impl Deref for Vars {
 	/// Forwards methods to HashMap
 	fn deref(&self) -> &Self::Target {
 		&self.vars
+	}
+}
+
+impl IntoIterator for Vars {
+	type Item = (String, String);
+	type IntoIter = hash_map::IntoIter<String, String>;
+
+	/// Forwards into_iter to vars
+	fn into_iter(self) -> Self::IntoIter {
+		self.vars.into_iter()
 	}
 }
 
@@ -247,7 +257,7 @@ mod tests {
 		.iter()
 		.cloned()
 		.collect();
-		vars.vars.into_iter().all(|(k, v)| {
+		vars.into_iter().all(|(k, v)| {
 			if expected.contains_key(k.as_str()) {
 				assert_eq!(*expected.get(k.as_str()).unwrap(), v);
 				true
@@ -277,7 +287,7 @@ mod tests {
 		.iter()
 		.cloned()
 		.collect();
-		vars.vars.into_iter().all(|(k, v)| {
+		vars.into_iter().all(|(k, v)| {
 			if expected.contains_key(k.as_str()) {
 				assert_eq!(*expected.get(k.as_str()).unwrap(), v);
 				true
@@ -295,7 +305,7 @@ mod tests {
 		let mut vars = Vars::default();
 		let _ = vars.insert_value("VAR", &value).unwrap();
 		let expected: HashMap<&str, &str> = [("VAR", "val1")].iter().cloned().collect();
-		vars.vars.into_iter().all(|(k, v)| {
+		vars.into_iter().all(|(k, v)| {
 			if expected.contains_key(k.as_str()) {
 				assert_eq!(*expected.get(k.as_str()).unwrap(), v);
 				true

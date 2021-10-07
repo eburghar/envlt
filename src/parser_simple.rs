@@ -13,8 +13,8 @@ enum Pos {
 	Anchor,
 }
 
-/// Iterator, that returns the 3 successives colon separated slices of a path expression
-/// backend:args:path. args can't contain ':'
+/// Iterator, that returns the 3 successives slices separated by a colon from an expression
+/// backend:args:path. backend and args can't contain ':' and there is no escaping mechanism
 pub struct SecretPathIterator<'a> {
 	remainder: &'a str,
 	pos: Pos,

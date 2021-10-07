@@ -43,6 +43,7 @@ impl<'a> TryFrom<&'a str> for Backend {
 			.ok_or(Error::UnknowBackend(backend_str.to_owned()))
 	}
 }
+
 /// Deserialize a SecretPath
 #[derive(PartialEq, Debug)]
 pub struct SecretPath<'a> {
