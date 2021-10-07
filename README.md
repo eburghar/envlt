@@ -56,8 +56,8 @@ alter this behavior you can mix together:
 
 - `-i` import all accessible variables "as is"
 - `-I` import only the variables that match an expression with a backend
-- `-V` define new variables or import existing ones
- 
+- `-V` (re)define variables (takes precedence over `-i` and `-I`) or import existing ones
+
 # Variable expression
 
 A variable expression following the `-V` flag has 3 form:
@@ -124,7 +124,10 @@ envlt -V 'FOO=const:js:{"bar": 0, "baz": 1}'
       -- command args
 ```
 
-will call `command args` with the following environment variables added to its context
+By default, `envlt` use a jwt token available in every kubernetes containers at
+`/var/run/secrets/kubernetes.io/serviceaccount/token`. This token has claims about the kubernetes container
+execution context you can use to restrict the access to secrets. Here, `command args` will have the following
+environment variables added to its context.
 
 - FOO_BAR=0
 - FOO_BAZ=1
