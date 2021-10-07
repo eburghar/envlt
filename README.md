@@ -38,16 +38,17 @@ Options:
                     (/var/run/secrets/kubernetes.io/serviceaccount/token)
   -V, --vars        an expression NAME[=VALUE] for defining one or several
                     variables. When no VALUE given, an environment variable with
-                    the same name is imported, when VALUE doesn't match a
-                    expression, a new variable is defined with the provided
-                    VALUE, otherwise the expression is expanded in one or
-                    several variables and NAME is used as a prefix.
+                    the same name is imported, when VALUE doesn't match an
+                    expression with a backend, a new variable is defined with
+                    the provided VALUE, otherwise the expression is expanded in
+                    one or several variables and NAME is used as a prefix.
   -v, --verbose     verbose mode
   -i, --import      import all environment variables before executing into cmd
   -I, --import-vault
                     import environment variables whose values matches a
                     vault_path a whose expansion is successful
   --help            display usage information
+
 ```
 
 By default, `envlt` starts with an empty context, meaning that no variables are exposed to `cmd`. There is 3 options to
