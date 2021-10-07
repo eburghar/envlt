@@ -1,14 +1,14 @@
 # envlt
 
-`envlt`, like [`env`](https://man7.org/linux/man-pages/man1/env.1.html), allows you to define environment
-variables and the execute into something else. By using simple expressions it allows to get values from a
-[vault server](https://www.vaultproject.io/) using a JWT Token as authentication.
+`envlt`, like [`env`](https://man7.org/linux/man-pages/man1/env.1.html), allows you to define environment variables
+and then execute into something else, but instead of static values, it uses using simple expressions to fetch secret
+from a [vault server](https://www.vaultproject.io/) using a JWT Token as authentication.
 
-It is useful in CI/CD environment, like [Gitlab](https://docs.gitlab.com/ee/ci/variables/) to securely access secrets
-inside your jobs and centralize the secrets management by using the short lived JWT token `CI_JOB_JWT` and get
-rid of all static secrets you normally define in Gitlab. For more complex cases involving services configuration,
-secret renewals, and restart of services, you will probably that [rconfd](https://github.com/eburghar/rconfd.git)
-is a better fit for the task.
+It is useful in CI/CD environment, like [Gitlab](https://docs.gitlab.com/ee/ci/variables/) to securely access
+secrets inside your jobs. It allows you to centralize secrets management by using the short lived JWT token
+`CI_JOB_JWT` and get rid of all static variables you normally define under Gitlab for that purpose. For more
+complex cases involving services configuration, secret renewals, and restart of services, you will probably find
+that [rconfd](https://github.com/eburghar/rconfd.git) is a better fit for the task.
 
 Also gitlab premium user can [define vault
 secrets](https://docs.gitlab.com/ee/ci/secrets/#use-vault-secrets-in-a-ci-job) directly in the project ci definition,
@@ -51,11 +51,11 @@ Options:
 
 ```
 
-By default, `envlt` starts with an empty context meaning no variables are exported to `cmd`. There is 3 options to
-alter this behavior, and you can mix together:
+By default, `envlt` starts with an empty context, meaning that no variables are exposed to `cmd`. There is 3 options to
+alter this behavior you can mix together:
 
 - `-i` import all accessible variables "as is"
-- `-I` import only the variables that match an expression
+- `-I` import only the variables that match an expression with a backend
 - `-V` define new variables or import existing ones
  
 # Variable expression
@@ -100,8 +100,8 @@ const:str|js:value
 the value is parsed as json if `js` or kept as is if `str`
 
 The main use of the `const:str:value` expression was to be able to differentiate a standard (not imported)
-variable from one to be imported when using the `-I` flag, although you can achieve the same result by explicitly
-import a regular (whose value is not an expression) variable with `-V NAME`.
+variable from one to be imported when using the `-I` flag, although you can achieve the same result in a more verbose
+way by explicitly import a regular (whose value is not an expression) variable with `-V NAME`.
 
 # Example
 
@@ -156,7 +156,7 @@ envlt -I -V PATH -V HOME -- command args
 If you choose not to import all the environment variables (`-i`), you may have to manually import some important ones
 like `PATH` or `HOME` like in the example above.
 
-# Using rconfd with Gitlab CI/CD
+# Using envlt with Gitlab CI/CD
 
 ## Configuring vault
 
