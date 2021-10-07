@@ -50,9 +50,11 @@ fn main() -> Result<()> {
 	let mut argv: Vec<*const c_char> = cmd_args.iter().map(|s| s.as_ptr()).collect();
 	argv.push(std::ptr::null());
 
-	// construct a vec of variables definition from variable expressions (PREFIX=VAULT_PATH)
+	// construct a map of variables names, values from expressions (NAME[=VALUE])
 	let mut env = Vars::default();
-	env.push_vars(args.vars, &mut client, import_mode)?;
+	env.insert_vars(args.vars, &mut client, import_mode)?;
+	// transform env back into a vector of NAME=VALUE
+	let env = env.get_envp()?;
 
 	// construct a vector of pointers from borrowed CString
 	let mut envp: Vec<*const c_char> = env.iter().map(|s| s.as_ptr()).collect();
