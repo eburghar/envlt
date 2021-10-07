@@ -12,8 +12,6 @@ pub enum Error {
 	NulError(#[from] std::ffi::NulError),
 	#[error("json pointer \"{0}\" returns no result")]
 	Pointer(String),
-	#[error("variable expression should be prefix=path: \"{0}\"")]
-	ParseVar(String),
 	#[error(transparent)]
 	VaultError(#[from] vault_jwt::error::Error),
 	#[error("getting token {0}")]
@@ -26,8 +24,6 @@ pub enum Error {
 	ParseError(#[from] serde_json::error::Error),
     #[error("Expected argument {0} on {1}")]
     ExpectedArg(String, String),
-    #[error(transparent)]
-    UnkownVar(#[from] std::env::VarError)
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

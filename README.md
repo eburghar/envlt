@@ -1,21 +1,22 @@
 # envlt
 
-`envlt` has mainly been developped to replace [Gitlab CI/CD variables](https://docs.gitlab.com/ee/ci/variables/)
-whenever possible to centralize secrets in a vault server and provide a more secure way to pass secrets to CI/CD
-jobs via a short-lived JWT token (`$CI_JOB_JWT`). It can certainly be used in other contexts, every time a JWT
-is available, to export secrets to environment variables. For more complex cases involving services configuration
-secret renewals, and restart of services, [rconfd](https://github.com/eburghar/rconfd.git) is more suitable.
+`envlt`, like [`env`](https://man7.org/linux/man-pages/man1/env.1.html), allows you to define environment
+variables and the execute into something else. By using simple expressions it allows to get values from a
+[vault server](https://www.vaultproject.io/) using a JWT Token as authentication.
+
+It is useful in CI/CD environment, like [Gitlab](https://docs.gitlab.com/ee/ci/variables/) to securely access secrets
+inside your jobs and centralize the secrets management by using the short lived JWT token `CI_JOB_JWT` and get
+rid of all static secrets you normally define in Gitlab. For more complex cases involving services configuration,
+secret renewals, and restart of services, you will probably that [rconfd](https://github.com/eburghar/rconfd.git)
+is a better fit for the task.
 
 Also gitlab premium user can [define vault
 secrets](https://docs.gitlab.com/ee/ci/secrets/#use-vault-secrets-in-a-ci-job) directly in the project ci definition,
 there is no such integrated mechanism for the community edition. You should in that case use the `vault` command, add
 some boilerplate to login to the jwt service, get secrets one by one, then export them to environment variables. I
-didn't fancy embeding the full vault executable only for that purpose and wanted CI/CD jobs definitions to be as
+didn't fancy embedding the full vault executable only for that purpose and wanted CI/CD jobs definitions to be as
 straightforward as possible. `envlt` integrate all theses steps in one binary and never expose the secrets
 values in the command arguments contrary to a script.
-
-In the spirit of the `env` command, `envlt` replace itself with the command and args given as paramaters after
-adding environment variables to its execution context.
 
 ## Usage
 
@@ -50,16 +51,25 @@ Options:
 
 ```
 
+By default, `envlt` starts with an empty context meaning no variables are exported to `cmd`. There is 3 options to
+alter this behavior, and you can mix together:
+
+- `-i` import all accessible variables "as is"
+- `-I` import only the variables that match an expression
+- `-V` define new variables or import existing ones
+ 
 # Variable expression
 
-A variable expression has 3 form:
+A variable expression following the `-V` flag has 3 form:
 
-- `NAME`: an environment variable with the same name is imported before executing the command
-- `NAME=VALUE`: a new environment variable is defined and imported with the provided value
-- `PREFIX=backend:args:path[#anchor]`: one or several variables are imported from the backend. For returned
-  structured value (`vault` backend and `const` backend with `js` value), envlt recursively define one variable
-  name for each leaf of the json tree by joining the prefix and path components with `_`. Path components are keys
-  for dictionaries and indexes (starting at 0) for arrays.# Backends
+- `NAME`: import an environment variable with the same name
+- `NAME=VALUE`: define a new environment variable with a static value
+- `PREFIX=backend:args:path[#anchor]`: define one or several variables by fetching their value from a backend. When
+  the returned value is structured (`vault` backend and `const` backend with `js` value), envlt recursively define one
+  variable name for each leaf of the json tree by joining the prefix and path components with `_`. Path components
+  are keys for dictionaries and indexes (starting at 0) for arrays.
+
+# Backends
 
 There are currently 2 supported back-ends.
 
@@ -90,13 +100,13 @@ const:str|js:value
 the value is parsed as json if `js` or kept as is if `str`
 
 The main use of the `const:str:value` expression was to be able to differentiate a standard (not imported)
-variable from one to be imported when using the `-I` flag, although you can achieve the same result by explicitely
+variable from one to be imported when using the `-I` flag, although you can achieve the same result by explicitly
 import a regular (whose value is not an expression) variable with `-V NAME`.
 
 # Example
 
-If you have a [pki](https://www.vaultproject.io/docs/secrets/pki) backend mounted at `/pki`, and a [kv2](https://www.vaultproject.io/docs/secrets/kv/kv-v2secret)
-secret defined at `kv/abuild` with the following content
+If you have a [pki](https://www.vaultproject.io/docs/secrets/pki) backend mounted at `/pki`, and a
+[kv2](https://www.vaultproject.io/docs/secrets/kv/kv-v2secret) secret defined at `kv/abuild` with the following content
 
 ```yaml
 crt: xxxx
@@ -107,14 +117,14 @@ keyid: xxxx
 calling `envlt` with the following arguments
 
 ```sh
-envlt -V FOO='const:js:{"bar": 0, "baz": 1}'
-      -V BAR="const:str:3"
-      -V CERT="vault:role,POST,common_name=example.com:pki/issue/example.com" \
-      -V PACKAGER="vault:role:kv/data/secret#/data"
+envlt -V 'FOO=const:js:{"bar": 0, "baz": 1}'
+      -V BAR=3
+      -V CERT=vault:role,POST,common_name=example.com:pki/issue/example.com \
+      -V PACKAGER=vault:myrole:kv/data/secret#/data
       -- command args
 ```
 
-will call `command args` with the following enviroment variables added to its context
+will call `command args` with the following environment variables added to its context
 
 - FOO_BAR=0
 - FOO_BAZ=1
@@ -132,16 +142,19 @@ will call `command args` with the following enviroment variables added to its co
 - PACKAGER_KEYID=...
 
 You can also export the variables, and use `-I` option. This is useful in CI/CD where you can define variables
-in the upper level, and keep the pipeline simple
+in the upper level, and hiding the details to keep the pipeline as simple as possible
 
 ```sh
 export \
-  FOO='const:js:{"bar": 0, "baz": 1}' \
-  BAR="const:str:3" \
-  CERT="vault:role,POST,common_name=example.com:pki/issue/example.com" \
-  PACKAGER="vault:role:kv/data/secret#/data"
-envlt -I -- command args
+  'FOO=const:js:{"bar": 0, "baz": 1}' \
+  BAR=const:str:3 \
+  CERT=vault:role,POST,common_name=example.com:pki/issue/example.com \
+  PACKAGER=vault:myrole:kv/data/secret#/data
+envlt -I -V PATH -V HOME -- command args
 ```
+
+If you choose not to import all the environment variables (`-i`), you may have to manually import some important ones
+like `PATH` or `HOME` like in the example above.
 
 # Using rconfd with Gitlab CI/CD
 
@@ -187,7 +200,7 @@ You should make a build image (`mybuilder`) containing the envlt executable. The
 in your pipelines script using the JWT token from the environment variable `CI_JOB_JWT` (note that we use a
 variable name here instead of a substitution to not expose the token on command line arguments)
 
-You must define a `VAULT_URL=const:str:https://localhost:8200` and a `SECRET=vault:role:kv/data/secrets#/data`
+You must define a `VAULT_URL=const:str:https://localhost:8200` and a `SECRET=vault:myrole:kv/data/secrets#/data`
 variables and a good place for that is in the project or group settings.
 
 Here is an example `.gitlab-ci.yml`
@@ -199,5 +212,5 @@ build:
   stage: build
   script:
   # The Makefile use files containing secrets generated by rconfd
-  - envlt -I -T CI_TOKEN_JWT -- make
+  - envlt -I -V PATH -V HOME -T CI_TOKEN_JWT -- make
 ```
