@@ -21,7 +21,7 @@ values in the command arguments contrary to a script.
 ## Usage
 
 ```
-envlt 0.3.0
+envlt 0.5.0
 
 Usage: envlt <cmd> [<args...>] [-u <url>] [-l <login-path>] [-c <cacert>] [-T <token>] [-t <token-path>] [-V <vars...>] [-v] [-i] [-I]
 
@@ -33,7 +33,7 @@ Options:
   -c, --cacert      path of vault CA certificate
                     (/var/run/secrets/kubernetes.io/serviceaccount/ca.crt)
   -T, --token       the JWT token taken from the given variable name or from the
-                    given string if it fails (take precedence over -t)
+                    given string if it fails (takes precedence over -t)
   -t, --token-path  path of the JWT token
                     (/var/run/secrets/kubernetes.io/serviceaccount/token)
   -V, --vars        an expression NAME[=VALUE] for defining one or several
@@ -48,7 +48,6 @@ Options:
                     import environment variables whose values matches a
                     vault_path a whose expansion is successful
   --help            display usage information
-
 ```
 
 By default, `envlt` starts with an empty context, meaning that no variables are exposed to `cmd`. There is 3 options to
