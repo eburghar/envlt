@@ -21,7 +21,7 @@ values in the command arguments contrary to a script.
 ## Usage
 
 ```
-envlt 0.5.0
+envlt 0.5.1
 
 Usage: envlt <cmd> [<args...>] [-u <url>] [-l <login-path>] [-c <cacert>] [-T <token>] [-t <token-path>] [-V <vars...>] [-v] [-i] [-I]
 
@@ -80,9 +80,9 @@ vault:role[,GET|PUT|POST|LIST][,key=val]*:path[#json_pointer]
 ```
 
 - `role` is the role name used for vault authentication,
-- an optional http method that defaults to `GET`
-- optional keywords arguments that are sent as json dictionary in the body of the request
-- a path corresponding to the vault api point (without `/v1/`)
+- an optional http method that defaults to `GET`,
+- optional keywords arguments that are sent as json dictionary in the body of the request,
+- a path corresponding to the vault api point (without `/v1/`),
 - an optional [json pointer](https://datatracker.ietf.org/doc/html/rfc6901) to define variables from and that defaults
   to the root of the tree.
 

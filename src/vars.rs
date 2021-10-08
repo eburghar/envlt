@@ -8,12 +8,13 @@ use std::{
 };
 use vault_jwt::{
 	client::VaultClient,
-	secret::{Secret, SecretPath},};
+	secret::{Secret, SecretPath},
+};
 
 use crate::{
 	args::ImportMode,
-	error::{Error, Result},
 	backend::Backend,
+	error::{Error, Result},
 };
 
 #[derive(Debug, Default)]
@@ -101,7 +102,7 @@ impl Vars {
 						let value: Value = serde_json::from_str(secret_path.path)?;
 						self.insert_value(prefix, &value)?;
 					} else {
-						self.insert(prefix.to_owned(), secret_path.path.to_owned());
+						self.insert(prefix.to_owned(), secret_path.get_path_anchor());
 					}
 				} else {
 					Err(Error::ExpectedArg(
