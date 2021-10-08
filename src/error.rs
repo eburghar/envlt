@@ -1,13 +1,5 @@
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-	#[error("unknown backend \"{0}\"")]
-	UnknowBackend(String),
-	#[error("missing the backend argument")]
-	NoBackend,
-	#[error("missing a \":\" to separate backend from arguments \"{0}\"")]
-	NoArgs(String),
-	#[error("missing a \":\" to separate arguments from path \"{0}\"")]
-	NoPath(String),
 	#[error(transparent)]
 	NulError(#[from] std::ffi::NulError),
 	#[error("json pointer \"{0}\" returns no result")]

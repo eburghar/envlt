@@ -6,12 +6,14 @@ use std::{
 	ffi::CString,
 	ops::{Deref, DerefMut},
 };
-use vault_jwt::{client::VaultClient, secret::Secret};
+use vault_jwt::{
+	client::VaultClient,
+	secret::{Secret, SecretPath},};
 
 use crate::{
 	args::ImportMode,
 	error::{Error, Result},
-	secret::{Backend, SecretPath},
+	backend::Backend,
 };
 
 #[derive(Debug, Default)]
@@ -43,7 +45,7 @@ impl Vars {
 	pub fn insert_path(
 		&mut self,
 		prefix: &str,
-		secret_path: &SecretPath,
+		secret_path: &SecretPath<Backend>,
 		client: &mut VaultClient,
 	) -> Result<()> {
 		match secret_path.backend {
@@ -75,11 +77,11 @@ impl Vars {
 					)?
 				};
 				// return the value the given pointer or from the root
-				let value = if secret_path.anchor != "" {
+				let value = if let Some(anchor) = secret_path.anchor {
 					secret
 						.value
-						.pointer(&secret_path.anchor)
-						.ok_or_else(|| Error::Pointer(secret_path.anchor.to_owned()))?
+						.pointer(anchor)
+						.ok_or_else(|| Error::Pointer(anchor.to_owned()))?
 				} else {
 					&secret.value
 				};

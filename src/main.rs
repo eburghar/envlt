@@ -1,10 +1,8 @@
 mod args;
 mod error;
-mod parser_simple;
-mod secret;
+mod backend;
 mod vars;
 
-use anyhow::Result;
 use std::{env, ffi::CString, fs::File, io::Read, os::raw::c_char};
 use vault_jwt::client::VaultClient;
 
@@ -14,7 +12,7 @@ use crate::{
 	vars::Vars,
 };
 
-fn main() -> Result<()> {
+fn main() -> anyhow::Result<()> {
 	// parse command line arguments
 	let args: Args = args::from_env();
 
