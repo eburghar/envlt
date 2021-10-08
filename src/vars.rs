@@ -102,7 +102,7 @@ impl Vars {
 						let value: Value = serde_json::from_str(secret_path.path)?;
 						self.insert_value(prefix, &value)?;
 					} else {
-						self.insert(prefix.to_owned(), secret_path.get_path_anchor());
+						self.insert(prefix.to_owned(), secret_path.path_anchor.to_owned());
 					}
 				} else {
 					Err(Error::ExpectedArg(
