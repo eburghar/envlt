@@ -74,12 +74,20 @@ impl Vars {
 						role,
 						&method,
 						secret_path.path,
-						secret_path.anchor,
 						secret_path.kwargs.as_ref(),
 					)?
 				};
+				// return the value from the given pointer or from the root
+				let value = if let Some(anchor) = secret_path.anchor {
+					secret
+						.value
+						.pointer(anchor)
+						.ok_or_else(|| Error::Pointer(anchor.to_owned()))?
+				} else {
+					&secret.value
+				};
 				// create variables list from secret
-				self.insert_value(prefix, &secret.value)?;
+				self.insert_value(prefix, value)?;
 				// insert the secret (back) into cache
 				self.cache.insert(secret_path.path.to_owned(), secret);
 			}
@@ -94,7 +102,7 @@ impl Vars {
 						let value: Value = serde_json::from_str(secret_path.path)?;
 						self.insert_value(prefix, &value)?;
 					} else {
-						self.insert(prefix.to_owned(), secret_path.path_anchor.to_owned());
+						self.insert(prefix.to_owned(), secret_path.full_path.to_owned());
 					}
 				} else {
 					Err(Error::ExpectedArg(

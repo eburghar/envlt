@@ -3,7 +3,7 @@ name = "envlt"
 description = """vault client using jwt authentication that define environment variables from vault secrets before
 executing to something else"""
 authors = ["Éric BURGHARD <eric@itsufficient.me>"]
-version = "0.5.4"
+version = "0.5.5"
 edition = "2018"
 
 [dependencies]
@@ -14,9 +14,9 @@ libc = "0.2.102"
 log = "0.4.14"
 serde_json = "1.0.68"
 thiserror = "1.0.29"
-vault-jwt = { version = "0.7.0", features = [] }
-# vault-jwt = { version = "0.7.0", features = ["nom"] }
+vault-jwt = { version = "0.8.0", features = [] }
+# vault-jwt = { version = "0.8.0", features = ["nom"] }
 
 [patch.crates-io]
-vault-jwt = { git = "https://github.com/eburghar/vault-jwt.git", branch = "master" }
-# vault-jwt = { path = "../vault-jwt" }
+# vault-jwt = { git = "https://github.com/eburghar/vault-jwt.git", branch = "master" }
+vault-jwt = { path = "../vault-jwt" }

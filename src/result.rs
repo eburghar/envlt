@@ -14,6 +14,8 @@ pub enum Error {
 	ParseError(#[from] serde_json::error::Error),
     #[error("Expected argument {0} on {1}")]
     ExpectedArg(String, String),
+	#[error("json pointer \"{0}\" returns no result")]
+	Pointer(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

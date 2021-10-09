@@ -21,7 +21,7 @@ values in the command arguments contrary to a script.
 ## Usage
 
 ```
-envlt 0.5.3
+envlt 0.5.5
 
 Usage: envlt <cmd> [<args...>] [-u <url>] [-l <login-path>] [-c <cacert>] [-T <token>] [-t <token-path>] [-V <vars...>] [-v] [-i] [-I]
 
