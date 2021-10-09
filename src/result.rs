@@ -2,8 +2,6 @@
 pub enum Error {
 	#[error(transparent)]
 	NulError(#[from] std::ffi::NulError),
-	#[error("json pointer \"{0}\" returns no result")]
-	Pointer(String),
 	#[error(transparent)]
 	VaultError(#[from] vault_jwt::error::Error),
 	#[error("getting token {0}")]

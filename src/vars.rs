@@ -14,7 +14,7 @@ use vault_jwt::{
 use crate::{
 	args::ImportMode,
 	backend::Backend,
-	error::{Error, Result},
+	result::{Error, Result},
 };
 
 #[derive(Debug, Default)]
@@ -54,7 +54,7 @@ impl Vars {
 				let role = secret_path
 					.args
 					.get(0)
-					.ok_or_else(|| Error::MissingRole(format!("{}", &secret_path)))?;
+					.ok_or_else(|| Error::MissingRole(format!("{}", secret_path)))?;
 				let method = secret_path
 					.args
 					.get(1)
@@ -74,20 +74,12 @@ impl Vars {
 						role,
 						&method,
 						secret_path.path,
+						secret_path.anchor,
 						secret_path.kwargs.as_ref(),
 					)?
 				};
-				// return the value the given pointer or from the root
-				let value = if let Some(anchor) = secret_path.anchor {
-					secret
-						.value
-						.pointer(anchor)
-						.ok_or_else(|| Error::Pointer(anchor.to_owned()))?
-				} else {
-					&secret.value
-				};
 				// create variables list from secret
-				self.insert_value(prefix, value)?;
+				self.insert_value(prefix, &secret.value)?;
 				// insert the secret (back) into cache
 				self.cache.insert(secret_path.path.to_owned(), secret);
 			}

@@ -1,5 +1,5 @@
 mod args;
-mod error;
+mod result;
 mod backend;
 mod vars;
 
@@ -8,7 +8,7 @@ use vault_jwt::client::VaultClient;
 
 use crate::{
 	args::{Args, ImportMode},
-	error::Error,
+	result::Error,
 	vars::Vars,
 };
 
