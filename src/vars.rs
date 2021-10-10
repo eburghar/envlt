@@ -63,10 +63,10 @@ impl Vars {
 
 				// get owned secret
 				let secret = if let Some(secret) = self.cache.remove(secret_path.path) {
-					log::info!("get secret \"{}\" from cache", secret_path.path);
+					log::info!("get secret \"{}\" from cache", secret_path.to_string());
 					secret
 				} else {
-					log::info!("get secret \"{}\" from vault", secret_path.path);
+					log::info!("get secret \"{}\"", secret_path.to_string());
 					if !client.is_logged(role) {
 						client.login(role)?;
 					}
@@ -98,6 +98,7 @@ impl Vars {
 					.get(0)
 					.filter(|s| **s == "js" || **s == "str")
 				{
+					log::info!("get secret \"{}\"", secret_path.to_string());
 					if *const_type == "js" {
 						let value: Value = serde_json::from_str(secret_path.full_path)
 							.map_err(|e| Error::ParseError(secret_path.full_path.to_owned(), e))?;
