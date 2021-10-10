@@ -4,14 +4,12 @@ pub enum Error {
 	NulError(#[from] std::ffi::NulError),
 	#[error(transparent)]
 	VaultError(#[from] vault_jwt::error::Error),
-	#[error("getting token {0}")]
-	TokenError(#[from] std::io::Error),
-	#[error("executing {0:?}")]
+	#[error("Executing {0:?}")]
 	ExecError(std::ffi::CString, #[source] std::io::Error),
-	#[error("missing role in {0}")]
+	#[error("Missing role in {0}")]
 	MissingRole(String),
-	#[error(transparent)]
-	ParseError(#[from] serde_json::error::Error),
+	#[error("Parsing {0}")]
+	ParseError(String, #[source] serde_json::error::Error),
     #[error("Expected argument {0} on {1}")]
     ExpectedArg(String, String),
 	#[error("json pointer \"{0}\" returns no result")]

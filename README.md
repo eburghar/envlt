@@ -21,7 +21,7 @@ values in the command arguments contrary to a script.
 ## Usage
 
 ```
-envlt 0.5.5
+envlt 0.5.6
 
 Usage: envlt <cmd> [<args...>] [-u <url>] [-l <login-path>] [-c <cacert>] [-T <token>] [-t <token-path>] [-V <vars...>] [-v] [-i] [-I]
 
@@ -89,7 +89,7 @@ vault:role[,GET|PUT|POST|LIST][,key=val]*:path[#json_pointer]
 The vault secrets are cached by path (pointer excluded) and fetched only once. It is not really for
 performance reason but because some api points generate different secret each time they are called like
 [pki](https://www.vaultproject.io/docs/secrets/pki). You can define that way several variables with different
-prefixes but tied to the same secret.
+names (none is a prefix of the other) but tied to the same secret.
 
 ## Const
 
@@ -101,7 +101,23 @@ the value is parsed as json if `js` or kept as is if `str`
 
 The main use of the `const:str:value` expression was to be able to differentiate a standard (not imported)
 variable from one to be imported when using the `-I` flag, although you can achieve the same result in a more verbose
-way by explicitly import a regular (whose value is not an expression) variable with `-V NAME`.
+way by explicitly import a regular variable (whose value is not an expression) with `-V NAME`.
+
+With `const:js` you can expand several static environment variables sharing a common prefix with one expression. If
+you use [sccache](https://github.com/mozilla/sccache) with cargo you can use for example:
+
+```
+-V 'SCCACHE=const:js:{"bucket": "sccache", "endpoint": "minio:443", "s3_use_ssl": true}'
+```
+
+to define 3 variables
+
+- `SCCACHE_BUCKET=sccache`
+- `SCCACHE_ENDPOINT=minio:443`
+- `SCCACHE_S3_USE_SSL=true`
+
+to speedup compilation by using an S3 or compatible (minio) objects storage as build cache. You would also have
+to provide access keys `AWS_*` which could come from a kv2 secret.
 
 # Example
 
@@ -156,8 +172,8 @@ export \
 envlt -I -V PATH -V HOME -- command args
 ```
 
-If you choose not to import all the environment variables (`-i`), you may have to manually import some important ones
-like `PATH` or `HOME` like in the example above.
+If you choose not to import all the environment variables (`-i`) to have only the smallest subset of variables exported
+to command, you may have to manually import some important ones like `PATH` or `HOME` like in the example above.
 
 # Using envlt with Gitlab CI/CD
 

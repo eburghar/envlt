@@ -1,8 +1,9 @@
 mod args;
-mod result;
 mod backend;
+mod result;
 mod vars;
 
+use anyhow::Context;
 use std::{env, ffi::CString, fs::File, io::Read, os::raw::c_char};
 use vault_jwt::client::VaultClient;
 
@@ -25,7 +26,10 @@ fn main() -> anyhow::Result<()> {
 	// otherwise read from a file
 	} else {
 		let mut jwt = String::new();
-		File::open(&args.token_path)?.read_to_string(&mut jwt)?;
+		File::open(&args.token_path)
+			.with_context(|| format!("opening {}", args.token_path))?
+			.read_to_string(&mut jwt)
+			.with_context(|| format!("reading {}", args.token_path))?;
 		jwt
 	};
 	// trim jwt on both ends

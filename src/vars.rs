@@ -99,7 +99,8 @@ impl Vars {
 					.filter(|s| **s == "js" || **s == "str")
 				{
 					if *const_type == "js" {
-						let value: Value = serde_json::from_str(secret_path.path)?;
+						let value: Value = serde_json::from_str(secret_path.full_path)
+							.map_err(|e| Error::ParseError(secret_path.full_path.to_owned(), e))?;
 						self.insert_value(prefix, &value)?;
 					} else {
 						self.insert(prefix.to_owned(), secret_path.full_path.to_owned());
