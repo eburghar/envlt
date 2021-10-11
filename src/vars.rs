@@ -63,10 +63,10 @@ impl Vars {
 
 				// get owned secret
 				let secret = if let Some(secret) = self.cache.remove(secret_path.path) {
-					log::info!("get secret \"{}\" from cache", secret_path.to_string());
+					log::info!("get \"{}\" as {} from cache", secret_path.to_string(), prefix);
 					secret
 				} else {
-					log::info!("get secret \"{}\"", secret_path.to_string());
+					log::info!("get \"{}\" as {}", secret_path.to_string(), prefix);
 					if !client.is_logged(role) {
 						client.login(role)?;
 					}
@@ -98,7 +98,7 @@ impl Vars {
 					.get(0)
 					.filter(|s| **s == "js" || **s == "str")
 				{
-					log::info!("get secret \"{}\"", secret_path.to_string());
+					log::info!("get \"{}\" as {}", secret_path.to_string(), prefix);
 					if *const_type == "js" {
 						let value: Value = serde_json::from_str(secret_path.full_path)
 							.map_err(|e| Error::ParseError(secret_path.full_path.to_owned(), e))?;
@@ -215,6 +215,13 @@ impl Deref for Vars {
 	}
 }
 
+impl DerefMut for Vars {
+	/// Forwards methods to Vec
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		&mut self.vars
+	}
+}
+
 impl IntoIterator for Vars {
 	type Item = (String, String);
 	type IntoIter = hash_map::IntoIter<String, String>;
@@ -222,13 +229,6 @@ impl IntoIterator for Vars {
 	/// Forwards into_iter to vars
 	fn into_iter(self) -> Self::IntoIter {
 		self.vars.into_iter()
-	}
-}
-
-impl DerefMut for Vars {
-	/// Forwards methods to Vec
-	fn deref_mut(&mut self) -> &mut Self::Target {
-		&mut self.vars
 	}
 }
 

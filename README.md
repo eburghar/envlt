@@ -64,7 +64,7 @@ A variable expression following the `-V` flag has 3 form:
 
 - `NAME`: import an environment variable with the same name
 - `NAME=VALUE`: define a new environment variable with a static value
-- `PREFIX=backend:args:path[#anchor]`: define one or several variables by fetching their value from a backend. When
+- `PREFIX=backend:args:path`: define one or several variables by fetching their value from a backend. When
   the returned value is structured (`vault` backend and `const` backend with `js` value), envlt recursively define one
   variable name for each leaf of the json tree by joining the prefix and path components with `_`. Path components
   are keys for dictionaries and indexes (starting at 0) for arrays.
@@ -140,10 +140,7 @@ envlt -V 'FOO=const:js:{"bar": 0, "baz": 1}'
       -- command args
 ```
 
-By default, `envlt` use a jwt token available in every kubernetes containers at
-`/var/run/secrets/kubernetes.io/serviceaccount/token`. This token has claims about the kubernetes container
-execution context you can use to restrict the access to secrets. Here, `command args` will have the following
-environment variables added to its context.
+will add the following environment variables added to `command` context.
 
 - FOO_BAR=0
 - FOO_BAZ=1
@@ -160,8 +157,12 @@ environment variables added to its context.
 - PACKAGER_KEY=...
 - PACKAGER_KEYID=...
 
-You can also export the variables, and use `-I` option. This is useful in CI/CD where you can define variables
-in the upper level, and hiding the details to keep the pipeline as simple as possible
+By default, `envlt` use a jwt token available in every kubernetes containers at
+`/var/run/secrets/kubernetes.io/serviceaccount/token`. This token has claims about the kubernetes container
+execution context you can use in vault to restrict the access to secrets.
+
+You can also export the variables instead of defining them with `-V` and use `-I` option. This is useful in CI/CD
+where you can define variables in the upper level, and hiding the details to keep the pipeline as simple as possible
 
 ```sh
 export \
@@ -172,8 +173,9 @@ export \
 envlt -I -V PATH -V HOME -- command args
 ```
 
-If you choose not to import all the environment variables (`-i`) to have only the smallest subset of variables exported
-to command, you may have to manually import some important ones like `PATH` or `HOME` like in the example above.
+If you choose not to import all the environment variables (you don't use `-i` flag along with `-I`) you can control
+exactly which subset of variables are exported (the ones matching a backend expression) and add manually other
+important regular variables like `PATH` or `HOME` like in the example above.
 
 # Using envlt with Gitlab CI/CD
 

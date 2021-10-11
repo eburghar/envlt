@@ -55,6 +55,19 @@ fn main() -> anyhow::Result<()> {
 	// construct a map of variables names, values from expressions (NAME[=VALUE])
 	let mut env = Vars::default();
 	env.insert_vars(args.vars, &mut client, import_mode)?;
+
+	// show exhautive list of exported variables in verbose mode
+	if args.verbose {
+		let mut out = String::new();
+		let mut iter = env.keys();
+		if let Some(v) = iter.next() {
+			out += v;
+			for v in iter {
+				out = out + ", " + v;
+			}
+		}
+		log::info!("export {}", out);
+	}
 	// transform env back into a vector of NAME=VALUE
 	let env = env.get_envp()?;
 
