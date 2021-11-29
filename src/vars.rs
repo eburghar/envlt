@@ -63,7 +63,11 @@ impl Vars {
 
 				// get owned secret
 				let secret = if let Some(secret) = self.cache.remove(secret_path.path) {
-					log::info!("get \"{}\" as {} from cache", secret_path.to_string(), prefix);
+					log::info!(
+						"get \"{}\" as {} from cache",
+						secret_path.to_string(),
+						prefix
+					);
 					secret
 				} else {
 					log::info!("get \"{}\" as {}", secret_path.to_string(), prefix);
@@ -150,18 +154,19 @@ impl Vars {
 		// for explicit variable import, push secret or env var value and forward errors
 		for var in vars {
 			let (prefix, val) = parse_var(&var)?;
+			// if val is not defined, try to get it from the environment
+			let val = val
+				.map(|s| s.to_owned())
+				.or_else(|| env::var(prefix).ok());
 			// if we have a name and a value
 			if let Some(val) = val {
 				// try to parse the value as a secret path and push
-				if let Ok(secret_path) = SecretPath::try_from(val) {
+				if let Ok(secret_path) = SecretPath::try_from(val.as_ref()) {
 					self.insert_path(prefix, &secret_path, client)?;
 				// otherwise push the var as is
 				} else {
-					self.insert(prefix.to_owned(), val.to_owned());
+					self.insert(prefix.to_owned(), val);
 				}
-			// if we don't have a value, try to read an env var with the provided name
-			} else if let Ok(val) = env::var(prefix) {
-				self.insert(prefix.to_owned(), val.to_owned());
 			}
 		}
 		Ok(())

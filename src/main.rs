@@ -76,7 +76,7 @@ fn main() -> anyhow::Result<()> {
 	envp.push(std::ptr::null());
 
 	// SAFETY: All borrowed values pointed by prt inside argv and envp still exists at this point, so it's safe
-	// call execve
+	// to call execve
 	unsafe { libc::execve(prog.as_ptr(), argv.as_ptr(), envp.as_ptr()) };
 	Err(Error::ExecError(prog, std::io::Error::last_os_error()))?
 }

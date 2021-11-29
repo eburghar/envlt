@@ -26,10 +26,10 @@ impl<'a> fmt::Display for Backend {
 }
 
 /// Convert a backend text representation into its enum
-impl<'a> TryFrom<&'a str> for Backend {
+impl TryFrom<&str> for Backend {
 	type Error = Error;
 
-	fn try_from(backend_str: &'a str) -> Result<Self, Self::Error> {
+	fn try_from(backend_str: &str) -> Result<Self, Self::Error> {
 		BACKENDS
 			.iter()
 			.find_map(|(prefix, backend)| {
@@ -40,5 +40,13 @@ impl<'a> TryFrom<&'a str> for Backend {
 				}
 			})
 			.ok_or(Error::UnknowBackend(backend_str.to_owned()))
+	}
+}
+
+impl TryFrom<String> for Backend {
+	type Error = Error;
+
+	fn try_from(backend_str: String) -> Result<Self, Self::Error> {
+    	Backend::try_from(backend_str.as_ref())
 	}
 }
