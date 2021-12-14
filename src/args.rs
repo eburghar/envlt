@@ -104,13 +104,13 @@ impl From<&Args> for ImportMode {
 
 /// copy of argh::from_env to insert command name and version
 pub fn from_env<T: TopLevelCommand>() -> T {
-	const NAME: &'static str = env!("CARGO_BIN_NAME");
-	const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+	const NAME: &str = env!("CARGO_BIN_NAME");
+	const VERSION: &str = env!("CARGO_PKG_VERSION");
 	let args: Vec<String> = std::env::args().collect();
 	// get the file name of path or the full path
 	let cmd = Path::new(&args[0])
 		.file_name()
-		.map_or(None, |s| s.to_str())
+		.and_then(|s| s.to_str())
 		.unwrap_or(&args[0]);
 	let args_str: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
 	T::from_args(&[cmd], &args_str[1..]).unwrap_or_else(|early_exit| {

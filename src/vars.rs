@@ -27,7 +27,7 @@ pub struct Vars {
 
 /// Split a variable definition in NAME and VALUE
 fn parse_var(exp: &str) -> Result<(&str, Option<&str>)> {
-	let i = exp.find("=");
+	let i = exp.find('=');
 	if let Some(i) = i {
 		// something after =
 		if i + 1 < exp.len() {
@@ -105,16 +105,16 @@ impl Vars {
 					log::info!("get \"{}\" as {}", secret_path.to_string(), prefix);
 					if *const_type == "js" {
 						let value: Value = serde_json::from_str(secret_path.full_path)
-							.map_err(|e| Error::ParseError(secret_path.full_path.to_owned(), e))?;
+							.map_err(|e| Error::Parse(secret_path.full_path.to_owned(), e))?;
 						self.insert_value(prefix, &value)?;
 					} else {
 						self.insert(prefix.to_owned(), secret_path.full_path.to_owned());
 					}
 				} else {
-					Err(Error::ExpectedArg(
+					return Err(Error::ExpectedArg(
 						"\"str\" or \"js\"".to_owned(),
 						secret_path.to_string(),
-					))?;
+					))
 				}
 			}
 		};

@@ -11,7 +11,7 @@ pub enum Backend {
 }
 
 /// lookup list for backend
-const BACKENDS: &'static [(&'static str, Backend)] =
+const BACKENDS: &[(&str, Backend)] =
 	&[("vault", Backend::Vault), ("const", Backend::Const)];
 
 impl<'a> fmt::Display for Backend {
@@ -39,7 +39,7 @@ impl TryFrom<&str> for Backend {
 					None
 				}
 			})
-			.ok_or(Error::UnknowBackend(backend_str.to_owned()))
+			.ok_or_else(|| Error::UnknowBackend(backend_str.to_owned()))
 	}
 }
 
