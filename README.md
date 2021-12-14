@@ -1,4 +1,4 @@
-vault client using jwt authentication that define environment variables from vault secrets before
+vault client using jwt authentication that defines environment variables from vault secrets before
 executing to something else
 
 [TOC]

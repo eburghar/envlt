@@ -11,8 +11,7 @@ pub enum Backend {
 }
 
 /// lookup list for backend
-const BACKENDS: &[(&str, Backend)] =
-	&[("vault", Backend::Vault), ("const", Backend::Const)];
+const BACKENDS: &[(&str, Backend)] = &[("vault", Backend::Vault), ("const", Backend::Const)];
 
 impl<'a> fmt::Display for Backend {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -47,6 +46,6 @@ impl TryFrom<String> for Backend {
 	type Error = Error;
 
 	fn try_from(backend_str: String) -> Result<Self, Self::Error> {
-    	Backend::try_from(backend_str.as_ref())
+		Backend::try_from(backend_str.as_ref())
 	}
 }

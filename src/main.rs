@@ -19,6 +19,7 @@ fn main() -> anyhow::Result<()> {
 
 	// initialize env_logger in info mode for rconfd by default
 	env_logger::init_from_env(env_logger::Env::new().default_filter_or("envlt=info"));
+	log::info!("{} v{}", env!("CARGO_BIN_NAME"), env!("CARGO_PKG_VERSION"));
 
 	// if token given as argument, get the value from an envar with given name, or just use the string if it fails
 	let jwt = if let Some(jwt) = &args.token {

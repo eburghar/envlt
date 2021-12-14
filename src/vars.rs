@@ -114,7 +114,7 @@ impl Vars {
 					return Err(Error::ExpectedArg(
 						"\"str\" or \"js\"".to_owned(),
 						secret_path.to_string(),
-					))
+					));
 				}
 			}
 		};
@@ -155,9 +155,7 @@ impl Vars {
 		for var in vars {
 			let (prefix, val) = parse_var(&var)?;
 			// if val is not defined, try to get it from the environment
-			let val = val
-				.map(|s| s.to_owned())
-				.or_else(|| env::var(prefix).ok());
+			let val = val.map(|s| s.to_owned()).or_else(|| env::var(prefix).ok());
 			// if we have a name and a value
 			if let Some(val) = val {
 				// try to parse the value as a secret path and push

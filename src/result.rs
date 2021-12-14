@@ -10,8 +10,8 @@ pub enum Error {
 	MissingRole(String),
 	#[error("Parsing {0}")]
 	Parse(String, #[source] serde_json::error::Error),
-    #[error("Expected argument {0} on {1}")]
-    ExpectedArg(String, String),
+	#[error("Expected argument {0} on {1}")]
+	ExpectedArg(String, String),
 	#[error("json pointer \"{0}\" returns no result")]
 	Pointer(String),
 }
